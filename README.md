@@ -26,7 +26,8 @@ pip install "rfdetr[tensorrt]"
 
 .
 
-conda install -c conda-forge pycuda
+pip uninstall -y torch torchvision
+pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu121
 
 OR
 
@@ -40,5 +41,7 @@ model = RFDETRLarge()
 engine_path = model.export(format="trt", output_dir="rfdetr_trt_model")
 
 print(f"Engine saved to: {engine_path}")
+
+
 
 
