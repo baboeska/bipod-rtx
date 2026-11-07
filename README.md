@@ -6,6 +6,7 @@
 
 #Log into WSL or Ubuntu or Debian
 sudo apt update && sudo apt ugprade -y
+sudo apt install python3-pycuda
 
 #Activate your virtual environment
 
