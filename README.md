@@ -5,6 +5,7 @@
 #No guarantee, currently work in progress scratchpad.
 
 #Log into WSL or Ubuntu or Debian
+
 sudo apt update && sudo apt ugprade -y
 
 sudo apt install python3-pycuda
