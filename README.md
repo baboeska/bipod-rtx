@@ -13,9 +13,11 @@ sudo apt install python3-pycuda
 
 pip install "rfdetr[tensorrt]"
 
-OR
+.
 
 conda install -c conda-forge pycuda
+
+OR
 
 pip install "inference-models[trt10]"
 
