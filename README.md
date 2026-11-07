@@ -2,6 +2,7 @@
 #Batch image processor for Python and nVidia RTX gpus
 #For GPU's with 8gb of VRAM+
 #Apache 2.0 license
+#No guarantee, currently work in progress scratchpad.
 
 #Log into WSL or Ubuntu or Debian
 sudo apt update && sudo apt ugprade -y
