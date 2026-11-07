@@ -12,6 +12,16 @@ sudo apt install python3-pycuda
 
 #Activate your virtual environment
 
+cd ~
+
+python3 -m venv rfdetr-env
+
+source rfdetr-env/bin/activate
+
+pip install --upgrade pip
+
+pip install "inference-models[trt10]
+
 pip install "rfdetr[tensorrt]"
 
 .
@@ -20,7 +30,6 @@ conda install -c conda-forge pycuda
 
 OR
 
-pip install "inference-models[trt10]"
 
 from rfdetr import RFDETRLarge
 
