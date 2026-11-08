@@ -37,11 +37,13 @@ from rfdetr import RFDETRLarge
 # Load the COCO-pretrained Large variant
 model = RFDETRLarge()
 
-# Export to TensorRT (FP16 is the default and fastest for your GPU)
+# Export to TensorRT
 engine_path = model.export(format="trt", output_dir="rfdetr_trt_model")
 
 print(f"Engine saved to: {engine_path}")
 
+python - <<'EOF'
 
-
-
+engine_path = model.export(format="trt", output_dir="rfdetr_trt_model")
+print("Engine:", engine_path)
+EOF
