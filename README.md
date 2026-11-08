@@ -1,4 +1,9 @@
 # nVidiabip
+
+Please see help file for better advice.
+
+Made with help from Deepseek, Chatgpt, and Google Search AI :).
+
 #Batch image processor for Python and nVidia RTX gpus
 #For GPU's with 8gb of VRAM+
 #Apache 2.0 license
