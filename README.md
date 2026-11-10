@@ -28,6 +28,8 @@ source rfdetr-env/bin/activate
 
 pip install --upgrade pip
 
+pip install tqdm opencv-python
+
 pip install "inference-models[trt10]
 
 pip install "rfdetr[tensorrt]"
