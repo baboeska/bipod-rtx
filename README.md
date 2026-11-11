@@ -116,10 +116,9 @@ Known pitfalls
   Rebuild the .engine on the machine that will run it. TensorRT engines
   are GPU-specific and TensorRT-version-specific.
 
-    Pin torch to 2.5.1+cu121. Letting pip resolve inference-models[trt10]
-    pulls CUDA 13 wheels, which segfault against CUDA 12 system libraries.
+Pin torch to 2.5.1+cu121. Letting pip resolve inference-models[trt10] pulls CUDA 13 wheels, which segfault against CUDA 12 system libraries.
 
-    Dry-run first. Especially on large libraries.
+Dry-run first. Especially on large libraries.
 
 License
 
