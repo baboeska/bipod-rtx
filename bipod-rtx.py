@@ -13,16 +13,21 @@ Example:
 
 import os
 import sys
+import csv
 import shutil
 import argparse
 from pathlib import Path
-
+from datetime import datetime
+from collections import Counter
+from PIL import Image, UnidentifiedImageError
 from tqdm import tqdm
-#from ultralytics import YOLO
 from rfdetr import RFDETRInference
+
+
+
+#from ultralytics import YOLO
+
 MODEL_PATH = "~/rfdetr_trt_model/rfdetr-large_fp16.trt"
-
-
 
 
 # --- CONFIGURATION ---
@@ -94,6 +99,49 @@ def is_within(path, parent):
     except ValueError:
         return False
 
+def log_failure(log_path, stage, img_path, reason):
+    """Append one failure row. Creates the file with a header on first use."""
+    p = Path(log_path)
+    new = not p.exists()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    with p.open("a", newline="", encoding="utf-8") as f:
+        w = csv.writer(f, quoting=csv.QUOTE_MINIMAL)
+        if new:
+            w.writerow(["timestamp", "stage", "path", "reason"])
+        w.writerow([
+            datetime.now().isoformat(timespec="seconds"),
+            stage,
+            str(img_path),
+            reason,
+        ])
+
+Image.MAX_IMAGE_PIXELS = 100_000_000  # ~100 MP; PIL raises above this
+
+def validate_image(path, max_bytes=50 * 1024 * 1024, max_pixels=100_000_000):
+    """Cheap pre-flight check. Returns (ok: bool, reason: str)."""
+    p = Path(path)
+    try:
+        if not p.is_file():
+            return False, "not a regular file"
+        size = p.stat().st_size
+        if size == 0:
+            return False, "empty file"
+        if size > max_bytes:
+            return False, f"file too large ({size / 1e6:.1f} MB)"
+        with Image.open(p) as im:
+            w, h = im.size
+            if w <= 0 or h <= 0:
+                return False, f"bad dimensions {w}x{h}"
+            if w * h > max_pixels:
+                return False, f"decompression bomb ({w}x{h})"
+            im.verify()
+        return True, "ok"
+    except Image.DecompressionBombError as e:
+        return False, f"decompression bomb: {e}"
+    except UnidentifiedImageError:
+        return False, "not a recognisable image"
+    except (OSError, ValueError, SyntaxError) as e:
+        return False, f"unreadable: {e}"
 
 def make_destination(img_path, source_dir, output_root, target_folder):
     """Preserve subdirectories and disambiguate same-named files from different folders."""
@@ -166,9 +214,18 @@ def main():
     if not args.dry_run:
         os.makedirs(output_root, exist_ok=True)
         os.makedirs(os.path.join(output_root, "empty_or_unknown"), exist_ok=True)
+        
+    LOG_PATH = os.path.join(output_root, "failures.csv")
+    class_counts = Counter()
 
     for img_path in tqdm(all_image_paths, desc="Processing Images", unit="img"):
         filename = os.path.basename(img_path)
+
+        ok, why = validate_image(img_path)
+        if not ok:
+            print(f"\n[skip] {img_path}: {why}", file=sys.stderr)
+            log_failure(LOG_PATH, "validate", img_path, why)
+            continue
 
         try:
             detected_objects = detect_classes(
@@ -178,18 +235,24 @@ def main():
             )
         except Exception as exc:
             print(f"\n[skip] {filename}: inference failed: {exc}", file=sys.stderr)
+            log_failure(LOG_PATH, "inference", img_path, str(exc))
             continue
 
         if detected_objects:
             primary_class = pick_primary(detected_objects)
             target_folder = os.path.join(output_root, primary_class)
+            class_counts[primary_class] += 1
         else:
             target_folder = os.path.join(output_root, "empty_or_unknown")
+            class_counts["empty_or_unknown"] += 1
 
-        dest_path = make_destination(img_path, source_dir, output_root, target_folder)
+        dest_path = make_destination(
+            img_path, source_dir, output_root, target_folder
+        )
+        relative_destination = os.path.relpath(dest_path, output_root)
 
         if args.dry_run:
-            print(f"{os.path.relpath(img_path, source_dir)} -> {os.path.relpath(dest_path, output_root)}")
+            print(f"{os.path.relpath(img_path, source_dir)} -> {relative_destination}")
             continue
 
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
@@ -197,6 +260,11 @@ def main():
             shutil.copy2(img_path, dest_path)
         except Exception as exc:
             print(f"[copy-fail] {filename}: {exc}", file=sys.stderr)
+            log_failure(LOG_PATH, "copy", img_path, str(exc))
+
+    print("\n-- Class summary --")
+    for name, count in class_counts.most_common():
+        print(f"  {name:20s} {count}")
 
     print(f"\nAll done! Your files are in: {output_root}")
     return 0
