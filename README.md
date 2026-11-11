@@ -70,7 +70,8 @@ Expected: 2.5.1+cu121 True, TRT OK, pycuda OK.
 Build the TensorRT engine (one-time)
 
 The engine is compiled for your specific GPU. Rebuild it if you change GPUs.
-bash
+
+
 
 cd ~
 
@@ -86,7 +87,11 @@ print("Engine:", engine_path)
 
 EOF
 
+
+
 For a faster (slightly less accurate) model, substitute RFDETRMedium or RFDETRSmall.
+
+
 Usage
 bash
 
