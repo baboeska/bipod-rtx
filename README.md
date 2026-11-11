@@ -1,6 +1,6 @@
 # BIPOD-RTX
 
-**Batch image processor for NVIDIA RTX GPUs**
+**Batch image processor with Object Detection for NVIDIA RTX GPUs**
 
 ~60–80 images per second on an RTX 4060M (8GB) with RF-DETR Large + TensorRT.
 Storage must be on WSL2's native Linux filesystem (not `/mnt/`) for full speed.
