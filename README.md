@@ -56,7 +56,6 @@ OpenVINO, RKNN, and Raspberry Pi variants.
 
 
 Verify the stack before continuing:
-bash
 
     python -c "import torch; print(torch.__version__, torch.cuda.is_available())"
 
@@ -89,11 +88,10 @@ The engine is compiled for your specific GPU. Rebuild it if you change GPUs.
 
 
 
-For a faster (slightly less accurate) model, substitute RFDETRMedium or RFDETRSmall.
+For a faster (slightly less accurate) model, substitute RFDETRMedium or RFDETRSmall, and edit script model line.
 
 
 Usage
-bash
 
 # Preview routing decisions, no files copied
     python bipod-rtx.py -i ~/Pictures -o ~/Pictures_Sorted --dry-run
