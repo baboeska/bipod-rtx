@@ -8,11 +8,23 @@ Storage must be on WSL2's native Linux filesystem (not `/mnt/`) for full speed.
 Part of [AI BIPOD](https://github.com/baboeska/bipod) — see the hub for the
 OpenVINO, RKNN, and Raspberry Pi variants.
 
+Optional resize and tile and both, with custom threshold potential.
+
+Tiling 1000px+ image gives 1.45x accuracy, at 4x+ increase in time. May be worth it for security applications.
+
+Example:
+
+    python processor_rfdeter.py -i ~/Pictures -o ~/Pictures_Sorted \
+        -m ~/rfdetr_trt_model/rfdetr-large_fp16.trt --conf 0.40
+    --mode resize (baseline), --mode tile --tile-threshold 0 (all tiled), --mode both --max-edge 4096
+
+
 ## Performance
 
 | Platform | Model | Throughput |
 |---|---|---|
-| RTX 4060M (8GB) | RF-DETR Large + TensorRT | **60–80 img/s** |
+| RTX 4060M (8GB) | RF-DETR Large + TensorRT | Resize | **60–80 img/s** |
+| RTX 4060M (8GB) | RF-DETER Large + TensorRT | Tile | ~20 img/s |
 
 ## Requirements
 
