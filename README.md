@@ -34,15 +34,15 @@ Example:
 - Python 3.10+
 - `nvidia-smi` should show your GPU before you start
 
-## Setup
+# Setup
 
-# System packages
+## System packages
 
     sudo apt update && sudo apt upgrade -y
 
     sudo apt install python3-pycuda 
 
-# Python environment
+## Python environment
 
     cd ~
 
@@ -52,7 +52,7 @@ Example:
 
     pip install --upgrade pip
 
-# Core dependencies
+## Core dependencies
 
     pip install tqdm opencv-python
 
@@ -67,7 +67,7 @@ Example:
     
 
 
-# Pin torch to CUDA 12.1 (avoids the CUDA 13 segfault)
+## Pin torch to CUDA 12.1 (avoids the CUDA 13 segfault)
     pip uninstall -y torch torchvision
     pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu121
 
@@ -108,19 +108,19 @@ The engine is compiled for your specific GPU. Rebuild it if you change GPUs.
 For a faster (slightly less accurate) model, substitute RFDETRMedium or RFDETRSmall, and edit script model line.
 
 
-## Usage
+# Usage
 
-# Activate virtual environment; 
+## Activate virtual environment; 
 
     source rfdetr-env/bin/activate
 
-# Preview routing decisions, no files copied
+## Preview routing decisions, no files copied
     python bipod-rtx.py -i ~/Pictures -o ~/Pictures_Sorted --dry-run
 
-# Actually sort
+## Actually sort
     python bipod-rtx.py -i ~/Pictures -o ~/Pictures_Sorted
 
-# Point at a specific engine
+## Point at a specific engine
     python bipod-rtx.py -i ~/Pictures -o ~/Pictures_Sorted \
     -m ~/rfdetr_trt_model/rfdetr-medium_fp16.trt
 
