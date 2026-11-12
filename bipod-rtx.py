@@ -19,6 +19,7 @@ import argparse
 import cv2
 import supervision as sv
 import csv
+import time
 from datetime import datetime
 from PIL import Image, UnidentifiedImageError
 from collections import Counter
@@ -84,7 +85,7 @@ def parse_args():
     parser.add_argument("--max-edge", type=int, default=4096,
         help="max long edge before tiling in 'both' mode (default: 4096)")
     parser.add_argument("--tile-threshold", type=int, default=1000,
-        help="skip tiling below this long edge (default: 1200)")
+        help="skip tiling below this long edge (default: 1000)")
     return parser.parse_args()
 
 
@@ -171,8 +172,14 @@ def detect_with_mode(predictor, image_path, conf_thresh, args):
 
     long_edge = max(img.shape[:2])
 
+    # NOTE: This function must be indented inside detect_with_mode
     def predict_rgb(arr):
-        return predictor.predict(cv2.cvtColor(arr, cv2.COLOR_BGR2RGB))
+        rgb = cv2.cvtColor(arr, cv2.COLOR_BGR2RGB)
+        return predictor.predict(
+            rgb,
+            threshold=conf_thresh,
+            include_source_image=False
+        )
 
     if args.mode == "resize" or long_edge < args.tile_threshold:
         result = predict_rgb(img)
@@ -240,12 +247,14 @@ def main():
     if not all_image_paths:
         return 0
     class_counts = Counter()
+    last_update = time.time()
     if not args.dry_run:
         os.makedirs(output_root, exist_ok=True)
         os.makedirs(os.path.join(output_root, "empty_or_unknown"), exist_ok=True)
     LOG_PATH = os.path.join(output_root, "failures.csv")
 
-    for img_path in tqdm(all_image_paths, desc="Processing Images", unit="img"):
+    pbar = tqdm(all_image_paths, desc="Processing Images", unit="img")
+    for img_path in pbar:
         filename = os.path.basename(img_path)
 
         ok, why = validate_image(img_path)
@@ -276,16 +285,21 @@ def main():
 
         dest_path = make_destination(img_path, source_dir, output_root, target_folder)
 
-        if args.dry_run:
-            print(f"{os.path.relpath(img_path, source_dir)} -> {os.path.relpath(dest_path, output_root)}")
-            continue
+        if not args.dry_run:
+            os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+            try:
+                shutil.copy2(img_path, dest_path)
+            except Exception as exc:
+                print(f"[copy-fail] {filename}: {exc}", file=sys.stderr)
+                log_failure(LOG_PATH, "copy", img_path, str(exc))
 
-        os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-        try:
-            shutil.copy2(img_path, dest_path)
-        except Exception as exc:
-            print(f"[copy-fail] {filename}: {exc}", file=sys.stderr)
-            log_failure(LOG_PATH, "copy", img_path, str(exc))
+        # Update the progress bar text (throttled to every 0.5s)
+        if time.time() - last_update > 0.5:
+            top_classes = ", ".join(
+                f"{name}:{count}" for name, count in class_counts.most_common(3)
+            )
+            pbar.set_postfix_str(top_classes)
+            last_update = time.time()
 
     print("\n-- Class summary --")
     for name, count in class_counts.most_common():
