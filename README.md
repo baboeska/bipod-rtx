@@ -110,6 +110,10 @@ For a faster (slightly less accurate) model, substitute RFDETRMedium or RFDETRSm
 
 Usage
 
+# Active virtual environment; 
+
+    source rfdetr-env/bin/activate
+
 # Preview routing decisions, no files copied
     python bipod-rtx.py -i ~/Pictures -o ~/Pictures_Sorted --dry-run
 
