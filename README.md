@@ -110,7 +110,7 @@ For a faster (slightly less accurate) model, substitute RFDETRMedium or RFDETRSm
 
 Usage
 
-# Active virtual environment; 
+# Activate virtual environment; 
 
     source rfdetr-env/bin/activate
 
