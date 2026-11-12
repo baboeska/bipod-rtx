@@ -125,9 +125,9 @@ output directory.
 
 
 
-Known pitfalls
+##Known pitfalls
 
-Known pitfalls
+
 Storage location matters enormously. Keep the image library on WSL2's
 native filesystem, not a Windows-mounted drive (/mnt/c/, /mnt/d/, etc.).
 On a USB drive mounted through Windows, throughput drops 10–16×.
