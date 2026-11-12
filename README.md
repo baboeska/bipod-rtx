@@ -27,7 +27,7 @@ OpenVINO, RKNN, and Raspberry Pi variants.
 
     sudo apt update && sudo apt upgrade -y
 
-    sudo apt install python3-pycuda
+    sudo apt install python3-pycuda 
 
 # Python environment
 
@@ -48,6 +48,8 @@ OpenVINO, RKNN, and Raspberry Pi variants.
     pip install "rfdetr[tensorrt]"
 
     pip install opencv-tools
+    
+    pip install opencv-python-headless
 
 
 # Pin torch to CUDA 12.1 (avoids the CUDA 13 segfault)
