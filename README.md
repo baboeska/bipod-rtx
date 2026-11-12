@@ -108,7 +108,7 @@ The engine is compiled for your specific GPU. Rebuild it if you change GPUs.
 For a faster (slightly less accurate) model, substitute RFDETRMedium or RFDETRSmall, and edit script model line.
 
 
-Usage
+## Usage
 
 # Activate virtual environment; 
 
