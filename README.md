@@ -14,7 +14,7 @@ Tiling 1000px+ image gives 1.45x accuracy, at 4x+ increase in time. May be worth
 
 Example:
 
-    python processor_rfdeter.py -i ~/Pictures -o ~/Pictures_Sorted \
+    python bipod-rtx.py -i ~/Pictures -o ~/Pictures_Sorted \
         -m ~/rfdetr_trt_model/rfdetr-large_fp16.trt --conf 0.40
     --mode resize (baseline), --mode tile --tile-threshold 0 (all tiled), --mode both --max-edge 4096
 
