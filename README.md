@@ -22,7 +22,7 @@ Example:
 ## Performance
 
 | Platform | Model | Mode | Throughput |
-|---|---|---|
+|---|---|---|---|
 | RTX 4060M (8GB) | RF-DETR Large + TensorRT | Resize | **60–80 img/s** |
 | RTX 4060M (8GB) | RF-DETR Large + TensorRT | Tile | ~20-25 img/s |
 
