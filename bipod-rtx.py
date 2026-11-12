@@ -9,25 +9,25 @@ Pass the TensorRT .trt engine to --model.
 Example:
     python processor_rfdeter.py -i ~/Pictures -o ~/Pictures_Sorted \
         -m ~/rfdetr_trt_model/rfdetr-large_fp16.trt --conf 0.40
+--mode resize (baseline), --mode tile --tile-threshold 0 (all tiled), --mode both --max-edge 4096
 """
 
 import os
 import sys
-import csv
 import shutil
 import argparse
-from pathlib import Path
+import cv2
+import supervision as sv
+import csv
 from datetime import datetime
-from collections import Counter
 from PIL import Image, UnidentifiedImageError
+from collections import Counter
+from pathlib import Path
 from tqdm import tqdm
 from rfdetr import RFDETRInference
-
-
-
-#from ultralytics import YOLO
-
 MODEL_PATH = "~/rfdetr_trt_model/rfdetr-large_fp16.trt"
+#MODEL_PATH = "~/rfdetr_trt_model/rfdetr-medium_fp16.trt"
+
 
 
 # --- CONFIGURATION ---
@@ -50,7 +50,7 @@ IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}
 def parse_args():
     parser = argparse.ArgumentParser(
         prog="dsbatch",
-        description="Batch-sort images using Ultralytics YOLO26 with an OpenVINO model.",
+        description="Batch-sort images using RF-DETR with TensorRT.",
     )
     parser.add_argument(
         "--input", "-i", default=DEFAULT_SOURCE,
@@ -66,20 +66,25 @@ def parse_args():
     )
     parser.add_argument(
         "--model", "-m", default=MODEL_PATH,
-        help=f"path to the OpenVINO .xml model (default: {MODEL_PATH})",
-    )
-    parser.add_argument(
-        "--device", default=None,
-        help="optional inference device, e.g. CPU or GPU; leave unset for Ultralytics default",
-    )
-    parser.add_argument(
-        "--imgsz", type=int, default=640,
-        help="inference image size (default: 640)",
+        help=f"path to the RF-DETR model (default: {MODEL_PATH})",
     )
     parser.add_argument(
         "--dry-run", action="store_true",
         help="print routing decisions without copying files",
     )
+    parser.add_argument(
+        "--mode", choices=["resize", "tile", "both"], default="resize",
+        help="resize: single-pass (default); tile: native-resolution tiles; "
+         "both: downscale to --max-edge then tile",
+    )
+    parser.add_argument("--tile-size", type=int, default=704,
+        help="tile dimensions in pixels (default: 704, matches RF-DETR Large)")
+    parser.add_argument("--tile-overlap", type=int, default=100,
+        help="tile overlap in pixels (default: 100)")
+    parser.add_argument("--max-edge", type=int, default=4096,
+        help="max long edge before tiling in 'both' mode (default: 4096)")
+    parser.add_argument("--tile-threshold", type=int, default=1000,
+        help="skip tiling below this long edge (default: 1200)")
     return parser.parse_args()
 
 
@@ -90,17 +95,7 @@ def pick_primary(detected):
             return class_name
     return sorted(detected)[0]
 
-
-def is_within(path, parent):
-    """True when path is parent itself or is below parent."""
-    try:
-        Path(path).resolve().relative_to(Path(parent).resolve())
-        return True
-    except ValueError:
-        return False
-
 def log_failure(log_path, stage, img_path, reason):
-    """Append one failure row. Creates the file with a header on first use."""
     p = Path(log_path)
     new = not p.exists()
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -114,6 +109,31 @@ def log_failure(log_path, stage, img_path, reason):
             str(img_path),
             reason,
         ])
+
+def is_within(path, parent):
+    """True when path is parent itself or is below parent."""
+    try:
+        Path(path).resolve().relative_to(Path(parent).resolve())
+        return True
+    except ValueError:
+        return False
+
+
+def make_destination(img_path, source_dir, output_root, target_folder):
+    """Preserve subdirectories and disambiguate same-named files from different folders."""
+    rel_path = os.path.relpath(img_path, source_dir)
+    base_name = os.path.basename(img_path)
+    relative_parent = os.path.dirname(rel_path)
+
+    if relative_parent:
+        dir_prefix = relative_parent.replace(os.sep, "__")
+        stem, extension = os.path.splitext(base_name)
+        new_filename = f"{stem}__{dir_prefix}{extension}"
+    else:
+        new_filename = base_name
+
+    return os.path.join(target_folder, relative_parent, new_filename)
+
 
 Image.MAX_IMAGE_PIXELS = 100_000_000  # ~100 MP; PIL raises above this
 
@@ -143,31 +163,41 @@ def validate_image(path, max_bytes=50 * 1024 * 1024, max_pixels=100_000_000):
     except (OSError, ValueError, SyntaxError) as e:
         return False, f"unreadable: {e}"
 
-def make_destination(img_path, source_dir, output_root, target_folder):
-    """Preserve subdirectories and disambiguate same-named files from different folders."""
-    rel_path = os.path.relpath(img_path, source_dir)
-    base_name = os.path.basename(img_path)
-    relative_parent = os.path.dirname(rel_path)
 
-    if relative_parent:
-        dir_prefix = relative_parent.replace(os.sep, "__")
-        stem, extension = os.path.splitext(base_name)
-        new_filename = f"{stem}__{dir_prefix}{extension}"
+def detect_with_mode(predictor, image_path, conf_thresh, args):
+    img = cv2.imread(image_path)
+    if img is None:
+        raise ValueError("cv2.imread returned None")
+
+    long_edge = max(img.shape[:2])
+
+    def predict_rgb(arr):
+        return predictor.predict(cv2.cvtColor(arr, cv2.COLOR_BGR2RGB))
+
+    if args.mode == "resize" or long_edge < args.tile_threshold:
+        result = predict_rgb(img)
     else:
-        new_filename = base_name
+        if args.mode == "both" and long_edge > args.max_edge:
+            scale = args.max_edge / long_edge
+            new_size = (int(img.shape[1] * scale), int(img.shape[0] * scale))
+            img = cv2.resize(img, new_size, interpolation=cv2.INTER_AREA)
 
-    return os.path.join(target_folder, relative_parent, new_filename)
+        slicer = sv.InferenceSlicer(
+            callback=predict_rgb,
+            slice_wh=(args.tile_size, args.tile_size),
+            overlap_wh=(args.tile_overlap, args.tile_overlap),
+            overlap_filter=sv.OverlapFilter.NON_MAX_SUPPRESSION,
+        )
+        result = slicer(img)
 
-
-def detect_classes(predictor, image_path, conf_thresh):
-    result = predictor.predict(image_path)
+    # Extract class names meeting the confidence threshold
     detected = set()
-    if result.data is None or "class_name" not in result.data:
-        return detected
-    for name, conf in zip(result.data["class_name"], result.confidence):
-        if float(conf) >= conf_thresh:
-            detected.add(str(name))
+    if result is not None and result.data is not None and "class_name" in result.data:
+        for name, conf in zip(result.data["class_name"], result.confidence):
+            if float(conf) >= conf_thresh:
+                detected.add(str(name))
     return detected
+
 
 
 def main():
@@ -192,7 +222,6 @@ def main():
     except Exception as exc:
         print(f"Error: could not load TensorRT engine: {exc}", file=sys.stderr)
         return 1
-
     print(f"--> Scanning images in {source_dir}...")
     all_image_paths = []
 
@@ -210,13 +239,11 @@ def main():
 
     if not all_image_paths:
         return 0
-
+    class_counts = Counter()
     if not args.dry_run:
         os.makedirs(output_root, exist_ok=True)
         os.makedirs(os.path.join(output_root, "empty_or_unknown"), exist_ok=True)
-        
     LOG_PATH = os.path.join(output_root, "failures.csv")
-    class_counts = Counter()
 
     for img_path in tqdm(all_image_paths, desc="Processing Images", unit="img"):
         filename = os.path.basename(img_path)
@@ -228,10 +255,11 @@ def main():
             continue
 
         try:
-            detected_objects = detect_classes(
+            detected_objects = detect_with_mode(
                 predictor=predictor,
                 image_path=img_path,
                 conf_thresh=args.conf,
+                args=args,
             )
         except Exception as exc:
             print(f"\n[skip] {filename}: inference failed: {exc}", file=sys.stderr)
@@ -246,13 +274,10 @@ def main():
             target_folder = os.path.join(output_root, "empty_or_unknown")
             class_counts["empty_or_unknown"] += 1
 
-        dest_path = make_destination(
-            img_path, source_dir, output_root, target_folder
-        )
-        relative_destination = os.path.relpath(dest_path, output_root)
+        dest_path = make_destination(img_path, source_dir, output_root, target_folder)
 
         if args.dry_run:
-            print(f"{os.path.relpath(img_path, source_dir)} -> {relative_destination}")
+            print(f"{os.path.relpath(img_path, source_dir)} -> {os.path.relpath(dest_path, output_root)}")
             continue
 
         os.makedirs(os.path.dirname(dest_path), exist_ok=True)
@@ -268,7 +293,6 @@ def main():
 
     print(f"\nAll done! Your files are in: {output_root}")
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())
