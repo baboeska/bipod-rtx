@@ -10,6 +10,16 @@ OpenVINO, RKNN, and Raspberry Pi variants.
 
 Optional resize and tile and both, with custom threshold potential.
 
+## Tiling (For High Resolution / Distant Objects)
+
+If you are processing 1080p security footage or 4K photos, resizing the whole image down to the model's native 704x704 resolution will make distant objects disappear. 
+
+Use `--mode tile` to process the image in native-resolution 704x704 overlapping tiles, and merge the results:
+
+    python bipod-rtx.py -i ~/Pictures -o ~/Pictures_Sorted --mode tile
+
+This drops throughput from ~80 img/s to ~20–40 img/s, but significantly increases the detection range and accuracy for small objects.
+
 Tiling 1000px+ image gives 1.45x+ accuracy, at 4x+ increase in time. May be worth it for security applications.
 Default RF-DETR Large model works best on 704x704. Script has line for fine tuning for other models ie S, M, XL.
 
