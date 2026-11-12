@@ -24,7 +24,7 @@ Example:
 | Platform | Model | Throughput |
 |---|---|---|
 | RTX 4060M (8GB) | RF-DETR Large + TensorRT | Resize | **60–80 img/s** |
-| RTX 4060M (8GB) | RF-DETER Large + TensorRT | Tile | ~20 img/s |
+| RTX 4060M (8GB) | RF-DETR Large + TensorRT | Tile | ~20-25 img/s |
 
 ## Requirements
 
@@ -58,8 +58,6 @@ Example:
     pip install "inference-models[trt10]"
 
     pip install "rfdetr[tensorrt]"
-
-    pip install opencv-tools
     
     pip install opencv-python-headless
 
@@ -123,22 +121,31 @@ Usage
 
 At the end of a run you get a class summary and a failures.csv log in the
 output directory.
+
+
+
 Known pitfalls
 
-  Storage location matters enormously. Keep the image library on WSL2's
-  native filesystem, not a Windows-mounted drive (/mnt/c/, /mnt/d/, etc.).
-  On a USB drive mounted through Windows, throughput drops 10–16×.
+Known pitfalls
+Storage location matters enormously. Keep the image library on WSL2's
+native filesystem, not a Windows-mounted drive (/mnt/c/, /mnt/d/, etc.).
+On a USB drive mounted through Windows, throughput drops 10–16×.
 
-  Rebuild the .engine on the machine that will run it. TensorRT engines
-  are GPU-specific and TensorRT-version-specific.
+Rebuild the .engine on the machine that will run it. TensorRT engines
+are GPU-specific and TensorRT-version-specific.
 
-Pin torch to 2.5.1+cu121. Letting pip resolve inference-models[trt10] pulls CUDA 13 wheels, which segfault against CUDA 12 system libraries.
+Pin torch to 2.5.1+cu121. Letting pip resolve inference-models[trt10]
+pulls CUDA 13 wheels, which segfault against CUDA 12 system libraries.
+
+RF-DETR expects RGB, not BGR. The script converts with
+cv2.cvtColor(img, cv2.COLOR_BGR2RGB) before every predict() call.
+Skipping this quietly degrades detection quality.
 
 Dry-run first. Especially on large libraries.
 
 License
 
-Apache 2.0
+Apache 2.0, Do good things, share and share alike.
 
 No guarantee, work in progress.
 
