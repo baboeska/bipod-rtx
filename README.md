@@ -124,6 +124,10 @@ For a faster (slightly less accurate) model, substitute RFDETRMedium or RFDETRSm
     python bipod-rtx.py -i ~/Pictures -o ~/Pictures_Sorted \
     -m ~/rfdetr_trt_model/rfdetr-medium_fp16.trt  --mode both
 
+## Keep an eye on GPU load if you like in a different terminal
+
+     watch -n 5 nvidia-smi
+
 At the end of a run you get a class summary and a failures.csv log in the
 output directory.
 
