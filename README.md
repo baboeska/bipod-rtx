@@ -51,6 +51,10 @@ OpenVINO, RKNN, and Raspberry Pi variants.
     
     pip install opencv-python-headless
 
+    pip install supervision
+
+    
+
 
 # Pin torch to CUDA 12.1 (avoids the CUDA 13 segfault)
     pip uninstall -y torch torchvision
