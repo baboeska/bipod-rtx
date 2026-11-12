@@ -115,14 +115,14 @@ For a faster (slightly less accurate) model, substitute RFDETRMedium or RFDETRSm
     source rfdetr-env/bin/activate
 
 ## Preview routing decisions, no files copied
-    python bipod-rtx.py -i ~/Pictures -o ~/Pictures_Sorted --dry-run
+    python bipod-rtx.py -i ~/Pictures -o ~/Pictures_Sorted  --mode both --dry-run
 
 ## Actually sort
-    python bipod-rtx.py -i ~/Pictures -o ~/Pictures_Sorted
+    python bipod-rtx.py -i ~/Pictures -o ~/Pictures_Sorted  --mode both
 
 ## Point at a specific engine
     python bipod-rtx.py -i ~/Pictures -o ~/Pictures_Sorted \
-    -m ~/rfdetr_trt_model/rfdetr-medium_fp16.trt
+    -m ~/rfdetr_trt_model/rfdetr-medium_fp16.trt  --mode both
 
 At the end of a run you get a class summary and a failures.csv log in the
 output directory.
