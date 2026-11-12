@@ -10,7 +10,8 @@ OpenVINO, RKNN, and Raspberry Pi variants.
 
 Optional resize and tile and both, with custom threshold potential.
 
-Tiling 1000px+ image gives 1.45x accuracy, at 4x+ increase in time. May be worth it for security applications.
+Tiling 1000px+ image gives 1.45x+ accuracy, at 4x+ increase in time. May be worth it for security applications.
+Default RF-DETR Large model works best on 704x704. Script has line for fine tuning for other models ie S, M, XL.
 
 Example:
 
