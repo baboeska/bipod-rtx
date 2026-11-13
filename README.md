@@ -177,4 +177,4 @@ Apache 2.0, Do good things, share and share alike.
 
 No guarantee, work in progress.
 
-Made with help from DeepSeek, ChatGPT, and Google Search AI. :)
+Made with help from DeepSeek, ChatGPT, Gemma4, and Google Search AI. :)
