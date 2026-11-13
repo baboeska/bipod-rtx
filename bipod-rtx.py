@@ -74,7 +74,7 @@ def parse_args():
         help="print routing decisions without copying files",
     )
     parser.add_argument(
-        "--mode", choices=["resize", "tile", "both"], default="resize",
+        "--mode", choices=["resize", "tile", "both"], default="both",
         help="resize: single-pass (default); tile: native-resolution tiles; "
          "both: downscale to --max-edge then tile",
     )
