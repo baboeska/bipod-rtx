@@ -46,6 +46,15 @@ Example:
 
 # Setup
 
+    ./install-bipod-rtx.sh
+
+    source rfdetr-env/bin/activate #Activate VENV (Has to be done in active terminal for program)
+
+    python3 bipod-rtx.py
+    
+#OR
+
+
 ## System packages
 
     sudo apt update && sudo apt upgrade -y
